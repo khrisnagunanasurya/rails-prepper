@@ -30,6 +30,7 @@ def add_template_repository_to_source_path
 end
 
 def commit?
+  @commit = true
   @commit ||= yes? "Initial commit?"
 end
 
@@ -90,18 +91,22 @@ def add_gems
 end
 
 def api?
+  @api = true  # Always install for now
   @api ||= yes? "Need API? (y/n)"
 end
 
 def activeadmin?
+  @activeadmin = true  # Always install for now
   @activeadmin ||= yes? "Install ActiveAdmin? (y/n)"
 end
 
 def devise?
+  @devise = true  # Always install for now
   @devise ||= yes? "Install Devise? (y/n)"
 end
 
 def sidekiq?
+  @sidekiq = true  # Always install for now
   @sidekiq ||= yes? "Do you want to use sidekiq? (y/n)"
 end
 
