@@ -41,40 +41,53 @@ def commit_to_git(message:, amend: false)
   git add: "."
   # git commit will fail if user.email is not configured
   begin
-    git commit: (amend ? "--amend" : "-m '#{message}'")
+    git commit: (amend ? "--amend --no-edit -a" : "-m '#{message}'")
   rescue StandardError => e
     say e.message, :red
   end
 end
 
 def add_gems
-  gem_group :development, :test do
-    gem "bullet", "~> 6.1"
-    gem "rspec-rails", "~> 5.0.0"
-    gem "rswag-specs"
-  end
+  development_test_gem_groups
+  development_gem_groups
+  test_gem_groups
+  global_gem_groups
+end
 
+def development_test_gem_groups
+  gem_group :development, :test do
+    gem "bullet"
+    gem "rspec-rails"
+    gem "rswag-specs" if api?
+  end
+end
+
+def development_gem_groups
   gem_group :development do
     gem "better_errors"
     gem "binding_of_caller"
-    gem "brakeman", "~> 5.0"
+    gem "brakeman"
     gem "pry-rails"
     gem "rubocop", require: false
     gem "rubocop-performance", require: false
     gem "rubocop-rails", require: false
     gem "rubocop-rspec", require: false
   end
+end
 
+def test_gem_groups
   gem_group :test do
     gem "database_cleaner-active_record"
     gem "factory_bot_rails"
     gem "faker"
     gem "rspec-sidekiq" if sidekiq?
-    gem "shoulda-matchers", "~> 5.0"
+    gem "shoulda-matchers"
     gem "simplecov", require: false
     gem "timecop"
   end
+end
 
+def global_gem_groups
   if api?
     gem "rswag-api"
     gem "rswag-ui"
@@ -85,28 +98,29 @@ def add_gems
     gem "sidekiq-cron"
   end
 
+  gem "multi_json"
   gem "activeadmin" if activeadmin?
-  gem "devise", "~> 4.8", ">= 4.8.0" if devise?
+  gem "devise" if devise?
   gem "paper_trail" if activeadmin? && devise?
 end
 
 def api?
-  @api = true  # Always install for now
+  @api = true # Always install for now
   @api ||= yes? "Need API? (y/n)"
 end
 
 def activeadmin?
-  @activeadmin = true  # Always install for now
+  @activeadmin = true # Always install for now
   @activeadmin ||= yes? "Install ActiveAdmin? (y/n)"
 end
 
 def devise?
-  @devise = true  # Always install for now
+  @devise = true # Always install for now
   @devise ||= yes? "Install Devise? (y/n)"
 end
 
 def sidekiq?
-  @sidekiq = true  # Always install for now
+  @sidekiq = true # Always install for now
   @sidekiq ||= yes? "Do you want to use sidekiq? (y/n)"
 end
 
@@ -146,7 +160,7 @@ def database_cleaner_setup
   # https://github.com/DatabaseCleaner/database_cleaner
   copy_file "spec/supports/database_cleaner.rb", force: true
 
-  insert_into_file "spec/rails_helper.rb", "require 'spec/supports/database_cleaner'\n",
+  insert_into_file "spec/rails_helper.rb", "require 'supports/database_cleaner'\n",
                    after: "require 'rspec/rails'\n"
 end
 
@@ -174,7 +188,7 @@ def factory_bot_setup
   # https://github.com/thoughtbot/factory_bot_rails
   copy_file "spec/supports/factory_bot.rb", force: true
 
-  insert_into_file "spec/rails_helper.rb", "require 'spec/supports/factory_bot'\n",
+  insert_into_file "spec/rails_helper.rb", "require 'supports/factory_bot'\n",
                    after: "require 'rspec/rails'\n"
 end
 
@@ -239,7 +253,7 @@ def shoulda_matchers_setup
   # https://github.com/thoughtbot/shoulda-matchers#rspec
   copy_file "spec/supports/shoulda_matchers.rb", force: true
 
-  insert_into_file "spec/rails_helper.rb", "require 'spec/supports/shoulda_matchers'\n",
+  insert_into_file "spec/rails_helper.rb", "require 'supports/shoulda_matchers'\n",
                    after: "require 'rspec/rails'\n"
 end
 
@@ -285,7 +299,7 @@ def run_setup
 end
 
 def clean_up
-  run "rubocop --auto-correct --cache true --format fuubar"
+  run "rubocop --auto-correct-all --cache true --format fuubar"
 end
 
 def overview
@@ -310,9 +324,7 @@ def generate_secret_key
   run "openssl rand -hex 64"
 end
 
-def env_setup
-
-end
+def env_setup; end
 
 add_template_repository_to_source_path
 
@@ -330,4 +342,5 @@ after_bundle do
   clean_up
   overview
   commit_to_git message: nil, amend: true
+  run "cd #{destination_root}"
 end
